@@ -1,0 +1,77 @@
+---
+# tasks file for pmm
+
+# Install PMM (Percona Monitoring and Management) on Docker.
+
+- name: Install Python and pip
+  tags: [ pmm, pmm-server ]
+  package:
+    name:
+      - python3
+      - python3-pip
+    state: present
+
+- name: Install pip docker
+  tags: [ pmm, pmm-server ]
+  pip:
+    name: docker
+
+- name: Create pmm-data
+  tags: [ pmm, pmm-server ]
+  become: yes
+  docker_container:
+    name: pmm-data
+    image: "percona/pmm-server:{{ pmm_server_version }}"
+    container_default_behavior: no_defaults
+    auto_remove: no
+    detach: yes
+    init: no
+    interactive: no
+    memory: '0'
+    paused: no
+    privileged: no
+    read_only: no
+    tty: no
+    volumes:
+    - /opt/prometheus/data
+    - /opt/consul-data
+    - /var/lib/mysql
+    - /var/lib/grafana
+    command: /bin/true
+    state: present
+
+- name: Create pmm-server
+  tags: [ pmm, pmm-server, pmm-upgrade, pmm-server-upgrade, pmm-server-restart ]
+  become: yes
+  docker_container:
+    name: pmm-server
+    image: "percona/pmm-server:{{ pmm_server_version }}"
+    container_default_behavior: no_defaults
+    auto_remove: no
+    detach: yes
+    init: no
+    interactive: no
+    memory: '0'
+    paused: no
+    privileged: no
+    read_only: no # @TODO: can this be yes?
+    tty: no
+    state: started
+    volumes_from:
+    - pmm-data
+    env: "
+      DISABLE_TELEMETRY=true
+      DISABLE_UPDATES=true
+      ORCHESTRATOR_ENABLED=false
+      SERVER_USER={{ pmm_server_user }}
+      SERVER_PASSWORD={{ pmm_server_password }}
+      QUERIES_RETENTION={{ queries_retention }}
+      METRICS_RETENTION={{ metrics_retention }}
+    "
+    ports:
+    - "{{ pmm_server_http_port }}:80"
+    restart_policy: always
+
+# @TODO: use ssl connections for sending metrics
+
+
