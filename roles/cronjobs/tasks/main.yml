@@ -2,7 +2,6 @@
 
 - name: Create script_dir
   tags: [ cronjobs ]
-  become: yes
   file:
     name: "{{ script_dir }}"
     owner: root
@@ -12,7 +11,6 @@
 
 - name: Copy scripts
   tags: [ cronjobs, cronjobs-scripts-update ]
-  become: yes
   template:
     src: "./templates/{{ item }}.j2"
     dest: "{{ script_dir }}/{{ item }}"
@@ -26,12 +24,10 @@
 
 - name: Add scripts path to profile
   tags: [ cronjobs ]
-  become: yes
   lineinfile: dest=/etc/profile line="export PATH=$PATH:{{ script_dir }}"
 
 - name: Create directories needed by the cronjobs
   tags: [ cronjobs, cronjobs-scripts-update ]
-  become: yes
   file:
     name: "{{ item.path }}"
     owner: "{{ item.owner }}"
@@ -42,14 +38,12 @@
 
 - name: Create directory manifests
   tags: [ cronjobs, cronjobs-scripts-update ]
-  become: yes
   shell:
     cmd: "echo '{{ item.comment }}' > {{ item.path }}/_MANIFEST"
   with_items: "{{ cronjob_dirs }}"
 
 - name: Add jobs, if any
   tags: [ cronjobs, cronjobs-jobs-update ]
-  become: yes
   cron:
     name: "{{ item.name }}"
     hour: "{{ item.hour }}"

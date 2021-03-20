@@ -18,7 +18,6 @@
 
 - name: Create pmm-data
   tags: [ pmm, pmm-server ]
-  become: yes
   docker_container:
     name: pmm-data
     image: "percona/pmm-server:{{ pmm_server_version }}"
@@ -42,7 +41,6 @@
 
 - name: Create pmm-server
   tags: [ pmm, pmm-server, pmm-upgrade, pmm-server-upgrade, pmm-server-restart ]
-  become: yes
   docker_container:
     name: pmm-server
     image: "percona/pmm-server:{{ pmm_server_version }}"
@@ -71,7 +69,4 @@
     ports:
     - "{{ pmm_server_http_port }}:80"
     restart_policy: always
-
-# @TODO: use ssl connections for sending metrics
-
 
