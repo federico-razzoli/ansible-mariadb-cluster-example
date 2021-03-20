@@ -1,0 +1,10 @@
+---
+
+- hosts: pmm
+  roles:
+    - pmm-server
+
+- hosts: mariadb_1
+  roles:
+    - role: mariadb-complete
+
