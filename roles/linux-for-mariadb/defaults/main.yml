@@ -1,0 +1,26 @@
+---
+
+# Do not change this unless you know what you're doing
+chains: [ 'INPUT', 'OUTPUT', 'FORWARD' ]
+
+# Ports that are allowed to send/receive traffic from the world.
+# Edit this list to add X protocol or ports used by MySQL EE.
+world_allowed_ports:
+  - { port: '3306', protocol: 'tcp' }  # MariaDB native protocol
+  - { port: '4567', protocol: 'tcp' }  # Galera replication
+  - { port: '4567', protocol: 'udp' }  # Galera replication
+  - { port: '4444', protocol: 'tcp' }  # Galera SST
+  - { port: '4568', protocol: 'tcp' }  # Galera IST
+
+# Kernel arguments to set at runtime and make persistent
+kernel_parameters:
+  - { key: 'vm.swappiness', value: '0' }
+
+# Additional packages to install, useful for diagnostics
+# or simplifying manual tasks
+package_list:
+    - linux-tools-common
+    - sysstat
+    - net-tools
+    - numactl
+

@@ -1,0 +1,64 @@
+---
+
+
+##  Ports
+##  =====
+
+- name: Open some ports to the world
+  tags: [ pxc, linux-for-mariadb, iptables ]
+  become: yes
+  iptables:
+    chain: "{{ item[1] }}"
+    protocol: "{{ item[0].protocol }}"
+    match: "{{ item[0].protocol }}"
+    destination_port: "{{ item[0].port }}"
+    jump: ACCEPT
+  with_nested:
+    - "{{ world_allowed_ports }}"
+    - "{{ chains }}"
+
+
+##  Optimisation
+##  ============
+
+- name: Set Kernel parameters
+  tags: [ linux-for-mariadb, kernel-parameters ]
+  become: yes
+  ansible.posix.sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    sysctl_set: yes
+  with_items: "{{ kernel_parameters }}"
+
+
+##  Languages
+##  =========
+
+- name: Install Perl
+  tags: [ linux-for-mariadb, perl-upgrade ]
+  become: yes
+  package:
+    name: perl
+    state: latest
+
+- name: Install Python3
+  tags: [ linux-for-mariadb, python-upgrade ]
+  become: yes
+  package:
+    name:
+      - python3
+      - python3-pymysql
+    state: latest
+
+
+##  Tools
+##  =====
+
+- name: Install packages that are useful to investigate performance
+  tags: [ linux-for-mariadb ]
+  become: yes
+  package:
+    name: "{{ item }}"
+    state: present
+  with_items: "{{ package_list }}"
+
