@@ -1,0 +1,25 @@
+{{ mysql_log_dir }}/* {
+        su mysql mysql
+        missingok
+        create 660 mysql mysql
+        notifempty
+        daily
+        minsize {{ mysql_logrotate_min_size }}
+        maxsize {{ mysql_logrotate_max_size }}
+        rotate {{ mysql_logrotate_old_files }}
+        compress
+        delaycompress
+        sharedscripts
+        olddir {{ mysql_logrotate_old_dir }}
+        createolddir 770 mysql mysql
+    postrotate
+        # if mysqld is running, flush all relevant logs
+        # (skip binary and relay, as they are rotated by mysqld)
+        if test -x $( which mysqladmin ) && \
+            $( which mysqladmin ) ping &>/dev/null
+        then
+            $( which mysqladmin ) \
+                flush-logs engine error general slow
+        fi
+    endscript
+

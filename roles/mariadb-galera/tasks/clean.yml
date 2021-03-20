@@ -1,0 +1,33 @@
+##  Replace existing MySQL daemon
+##  =============================
+
+
+# These tasks are run if these variables are set:
+#   - db_stop means that mysql service is stopped and any residual process is killed.
+#   - db_init implies db_stop. Additionally, the data directory is emptied.
+
+
+- name: Stop mysql service, if any
+  become: yes
+  service:
+    name=mysql
+    state=stopped
+  when: (db_stop is defined and db_stop == '1') or (db_init is defined and db_init == '1')
+
+# The reason why we do this is that if Galera fails at startup
+# mysqld_safe could remain active even if the service is stopped
+- name: Kill musqld_safe and mysqld, if still active
+  become: yes
+  shell: >
+    true killall -9 "{{ item }}"
+  with_items:
+    - mysqld_safe
+    - mysqld
+  when: (db_stop is defined and db_stop == '1') or (db_init is defined and db_init == '1')
+
+- name: Empty datadir
+  become: yes
+  shell: >
+    rm -Rf "{{ mysql_data_dir }}"
+  when: db_init is defined and db_init == '1'
+

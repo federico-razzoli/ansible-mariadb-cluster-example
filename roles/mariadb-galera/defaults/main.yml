@@ -1,0 +1,33 @@
+---
+
+# system user
+
+mysql_user: mysql
+mysql_group: mysql
+
+
+# paths
+
+script_dir: /usr/local/scripts
+mysql_conf_dir: /etc/mysql
+mysql_base_dir: /usr/local/mysql
+mysql_data_dir: /var/mysql/data
+mysql_log_dir: /var/mysql/logs
+mysql_tmp_dir: /var/mysql/tmp
+
+
+# system files
+
+# socket file and PID file will be here
+mysql_run_dir: /var/run/mysqld
+# socker file name
+mysql_socket: mysqld.sock
+# PID file name
+mysql_pid: mysqld.pid
+
+
+# logs
+
+# name of the error log, which will be in mysql_log_dir
+mysql_error_log: error.log
+

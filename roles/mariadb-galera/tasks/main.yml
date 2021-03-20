@@ -1,0 +1,440 @@
+---
+
+- name: Include validate.yml
+  tags: [ mariadb-galera, mariadb-galera-validate ]
+  include: validate.yml
+
+- name: Include clean.yml
+  tags: [ mariadb-galera, mariadb-galera-clean ]
+  include: clean.yml
+  when: (db_stop is defined and db_stop == '1') or (db_init is defined and db_init == '1')
+
+
+##  Percona Tools
+##  =============
+
+- name: Adds percona key
+  tags: [ mariadb-galera ]
+  become: yes
+  apt_key:
+    keyserver: keys.gnupg.net
+    id: "{{ item }}"
+    state: present
+  with_items:
+    - E1E2CD202D607DAF
+    - 1C4CBDCDCD2EFD2A
+    - 9334A25F8507EFA5
+    - 9E003FA64CAC6D72
+
+- name: Add Percona apt repository
+  tags: [ mariadb-galera ]
+  become: yes
+  apt:
+    deb: "https://repo.percona.com/apt/percona-release_latest.{{ ansible_distribution_release | lower }}_all.deb"
+    update_cache: true
+    state: present
+
+# Percona Toolkit
+
+- name: Install Percona Toolkit
+  tags: [ mariadb-galera, percona-toolkit-upgrade ]
+  become: yes
+  package:
+    name: percona-toolkit
+    state: present
+
+# Percona Xtrabackup
+
+- name: Install Percona Xtrabackup 2.4
+  tags: [ mariadb-galera, xtrabackup-upgrade ]
+  become: yes
+  package:
+    name: percona-xtrabackup-24
+    state: present
+
+- name: Add mysql group
+  tags: [ mariadb-galera ]
+  become: yes
+  group:
+    name: "{{ mysql_group }}"
+    state: present
+
+
+##  Other Packages
+##  ==============
+
+- name: Install socat
+  tags: [ mariadb-galera ]
+  become: yes
+  package:
+    name: socat
+    state: present
+
+
+##  Prepare MariaDB installation
+##  ==========================
+
+- name: Add mysql user
+  tags: [ mariadb-galera ]
+  become: yes
+  user:
+    name: "{{ mysql_user }}"
+    comment: Percona Server daemon
+    group: "{{ mysql_group }}"
+    create_home: no
+    shell: /sbin/nologin
+    state: present
+
+- name: Create scripts dir
+  tags: [ mariadb-galera ]
+  become: yes
+  file:
+    path: "{{ script_dir }}"
+    state: directory
+
+- name: Copy get-tarball.sh and config-get-tarball.sh
+  tags: [ mariadb-galera, mariadb-galera-scripts-update ]
+  become: yes
+  copy:
+    src: "./files/{{ item }}"
+    dest: "{{ script_dir }}"
+    owner: root
+    group: root
+    mode: 'preserve'
+  with_items:
+    - get-tarball.sh
+    - config-get-tarball.sh
+
+- name: Copy find-password.sh
+  tags: [ mariadb-galera, mariadb-galera-scripts-update ]
+  become: yes
+  template:
+    src="./templates/find-password.sh.j2"
+    dest="{{ script_dir }}/find-password.sh"
+
+# Returns code 100 if the tarball was unpacked.
+# This check can be used later to check if new MariaDB was put in place:
+# get_tarball.rc == 100
+- name: Run get-tarball.sh
+  tags: [ mariadb-galera ]
+  become: yes
+  shell: >
+    "{{ script_dir }}/get-tarball.sh"
+  register: get_tarball
+  failed_when: get_tarball.rc != 0 and get_tarball.rc != 100
+
+- name: Create MariaDB basedir
+  tags: [ mariadb-galera ]
+  become: yes
+  file:
+    path: "{{ mysql_base_dir }}"
+    owner: "{{ mysql_user }}"
+    group: "{{ mysql_group }}"
+    recurse: yes
+    state: directory
+  when: get_tarball.rc == 100
+
+# We separate directory creation and permissions
+# because we only want to know if datadir was created
+# to determine if mysqld --initialize should be run.
+
+- name: Create MariaDB datadir
+  tags: [ mariadb-galera ]
+  become: yes
+  file:
+    path: "{{ mysql_data_dir }}"
+    state: directory
+  register: datadir
+  when: get_tarball.rc == 100
+
+- name: Set MariaDB datadir permissions
+  tags: [ mariadb-galera ]
+  become: yes
+  file:
+    path: "{{ mysql_data_dir }}"
+    owner: "{{ mysql_user }}"
+    group: "{{ mysql_group }}"
+    mode: '777'
+  when: get_tarball.rc == 100
+
+- name: Create MariaDB log dir
+  tags: [ mariadb-galera ]
+  become: yes
+  file:
+    path: "{{ mysql_log_dir }}"
+    owner: "{{ mysql_user }}"
+    group: "{{ mysql_group }}"
+    mode: '764'
+    recurse: yes
+    state: directory
+  when: get_tarball.rc == 100
+
+- name: Create MariaDB temp dir
+  tags: [ mariadb-galera ]
+  become: yes
+  file:
+    path: "{{ mysql_tmp_dir }}"
+    owner: "{{ mysql_user }}"
+    group: "{{ mysql_group }}"
+    mode: '755'
+    state: directory
+  when: get_tarball.rc == 100
+
+- name: Create MariaDB run dir (socket, PID)
+  tags: [ mariadb-galera ]
+  become: yes
+  file:
+    path: "{{ mysql_run_dir }}"
+    owner: "{{ mysql_user }}"
+    group: "{{ mysql_group }}"
+    mode: '755'
+    state: directory
+  when: get_tarball.rc == 100
+
+- name: Add lib to ld.so.conf
+  tags: [ mariadb-galera ]
+  become: yes
+  lineinfile:
+    dest=/etc/ld.so.conf
+    line="{{ mysql_base_dir }}/lib/"
+  when: get_tarball.rc == 100
+
+- name: ldconfig
+  tags: [ mariadb-galera ]
+  become: yes
+  command: /sbin/ldconfig
+  when: get_tarball.rc == 100
+
+
+# Create config dir and copy general config file and host config file
+
+- name: Create MariaDB configuration dir
+  tags: [ mariadb-galera ]
+  become: yes
+  file:
+    path: "{{ mysql_conf_dir }}"
+    owner: "{{ mysql_user }}"
+    group: "{{ mysql_group }}"
+    mode: '777'
+    state: directory
+  when: get_tarball.rc == 100
+
+- name: Delete files/dirs not created by us
+  tags: [ mariadb-galera, mariadb-galera-static-config-update, mariadb-galera-dynamic-config-update ]
+  become: yes
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - /etc/mysql/conf.d
+    - /etc/mysql/my.cnf.fallback
+    - /etc/mysql/percona-server.cnf
+    - /etc/mysql/percona-server.conf.d
+
+- name: Copy my.cnf
+  tags: [ mariadb-galera, mariadb-galera-static-config-update, mariadb-galera-dynamic-config-update ]
+  become: yes
+  template:
+    src="./templates/config-groups/{{ primary_config_group }}.cnf.j2"
+    dest=/etc/mysql/my.cnf
+
+- name: Create configuration include subdir
+  tags: [ mariadb-galera ]
+  become: yes
+  file:
+    path: "{{ mysql_conf_dir }}/include"
+    owner: "{{ mysql_user }}"
+    group: "{{ mysql_group }}"
+    mode: '777'
+    state: directory
+
+- name: Copy wsrep.cnf (first node)
+  tags: [ mariadb-galera ]
+  become: yes
+  template:
+    src="./templates/wsrep/first_node.cnf.j2"
+    dest=/etc/mysql/include/wsrep.cnf
+  when: inventory_hostname == cluster_hosts[0].node_name
+
+- name: Copy wsrep.cnf (default)
+  tags: [ mariadb-galera ]
+  become: yes
+  template:
+    src="./templates/wsrep/default.cnf.j2"
+    dest=/etc/mysql/include/wsrep.cnf
+  when: inventory_hostname == cluster_hosts[0].node_name
+
+- name: Check if host config file exists
+  tags: [ mariadb-galera, mariadb-galera-static-config-update, mariadb-galera-dynamic-config-update ]
+  local_action: stat path="/etc/mysql/{{ inventory_hostname }}.cnf"
+  register: host_config_file
+
+- name: Copy host config file if exists
+  tags: [ mariadb-galera, mariadb-galera-static-config-update, mariadb-galera-dynamic-config-update ]
+  become: yes
+  template:
+    src="./templates/config-hosts/{{ inventory_hostname }}.cnf.j2"
+    dest="/etc/mysql/{{ inventory_hostname }}.cnf"
+  when: host_config_file.stat.exists == true
+
+
+
+# Running mysqld --initialize with non-empty directory should be safe,
+# because it is supposed to fail. But not to rely on this is better.
+# Also, it would be problematic to check if the command succeeded.
+# So first we use a BASH command to get the number of files in the datadir.
+- name: Check if datadir is empty
+  tags: [ mariadb-galera ]
+  become: yes
+  shell: >
+    ls -1 "{{ mysql_data_dir }}" |wc -l
+  register: datadir_file_count
+
+- name: Initialize datadir
+  tags: [ mariadb-galera ]
+  become: yes
+  command: "{{ mysql_base_dir }}/bin/mysqld --initialize --user='{{ mysql_user }}'"
+  ignore_errors: yes
+  when: datadir_file_count.stdout == '0'
+
+- name: Fix MariaDB datadir and log dir permissions
+  tags: [ mariadb-galera ]
+  become: yes
+  file:
+    path: "{{ item }}"
+    owner: "{{ mysql_user }}"
+    group: "{{ mysql_group }}"
+    mode: '774'
+    recurse: yes
+  with_items:
+    - "{{ mysql_data_dir }}"
+    - "{{ mysql_log_dir }}"
+
+- name: Add MariaDB bin path to profile
+  tags: [ mariadb-galera ]
+  become: yes
+  lineinfile: dest=/etc/profile line="export PATH=$PATH:{{ mysql_base_dir }}/bin/"
+
+- name: Add custom scripts path to profile
+  tags: [ mariadb-galera ]
+  become: yes
+  lineinfile: dest=/etc/profile line="export PATH=$PATH:{{ script_dir }}"
+  when: get_tarball.rc == 100
+
+- name: Run profile
+  tags: [ mariadb-galera ]
+  shell: executable=/bin/bash source /etc/profile
+  when: get_tarball.rc == 100
+
+- name: Copy mysql.server
+  tags: [ mariadb-galera, mariadb-galera-service-update ]
+  become: yes
+  template:
+    src=./templates/mysql.server.j2
+    dest=/etc/init.d/mysql.server
+  register: mysql_service
+
+- name: Fix mysql.server permissions
+  tags: [ mariadb-galera, mariadb-galera-service-update ]
+  become: yes
+  file:
+    path: /etc/init.d/mysql.server
+    owner: root
+    group: root
+    mode: '755'
+  when: mysql_service.changed
+
+- name: Reload service
+  tags: [ mariadb-galera, mariadb-galera-service-update ]
+  become: yes
+  command: systemctl daemon-reload
+  when: mysql_service.changed
+
+- name: Restart mysql
+  tags: [ mariadb-galera, mariadb-galera-static-config-update ]
+  become: yes
+  service:
+    name=mysql
+    state=restarted
+
+- name: Use generated password
+  tags: [ mariadb-galera ]
+  become: yes
+  shell: >
+    "{{ script_dir }}/find-password.sh"
+  when: datadir_file_count.stdout == '0'
+
+- name: Fail fast if service is not up
+  tags: [ mariadb-galera, mariadb-galera-static-config-update ]
+  become: yes
+  shell: >
+    systemctl status mysql
+
+
+# On the first node, now that it's started, let's fix wsrep_cluster_address
+
+- name: Copy wsrep.cnf to the first node
+  tags: [ mariadb-galera ]
+  become: yes
+  template:
+    src="./templates/wsrep/default.cnf.j2"
+    dest=/etc/mysql/include/wsrep.cnf
+  when:
+    - inventory_hostname == cluster_hosts[0].node_name
+    - cluster_hosts|length > 0
+
+
+##  Logrotate
+##  =========
+
+- name: Create mysql_logrotate_old_dir
+  tags: [ mariadb-galera ]
+  become: yes
+  file:
+    path: "{{ mysql_logrotate_old_dir }}"
+    owner: mysql
+    group: mysql
+    mode: '770'
+    state: directory
+
+- name: Configure logrotate
+  tags: [ mariadb-galera, mariadb-galera-logrotate-update ]
+  become: yes
+  template:
+    src: "../templates/logrotate.j2"
+    dest: "/etc/logrotate.d/mysql"
+
+
+##  Timezone Info
+##  =============
+
+- name: Update timezone info (first node)
+  tags: [ mariadb-galera, mariadb-galera-timezone-update ]
+  become: yes
+  apt:
+    name: tzdata
+    state: latest
+    install_recommends: no
+  register: timezone_info
+  when: inventory_hostname == cluster_hosts[0].node_name
+
+# mysql_tzinfo_to_sql generates the SQL statements to move
+# system timezone info into MariaDB.
+# It may generate warnings, so we need to grep them out
+# before piping the queries to mysql cli.
+# Be aware that it insertion of new data fails
+# old info may still be deleted.
+- name: Move system timezone info into MariaDB
+  tags: [ mariadb-galera, mariadb-galera-timezone-update ]
+  become: yes
+  shell: >
+    {{ mysql_base_dir }}/bin/mysql_tzinfo_to_sql /usr/share/zoneinfo \
+      | grep -v "^Warning" \
+      | {{ mysql_base_dir }}/bin/mysql --database=mysql
+  when: >
+      timezone_info.changed or (
+       inventory_hostname == cluster_hosts[0].node_name and
+       force_timezone_load is defined and
+       force_timezone_load == '1'
+      )
+

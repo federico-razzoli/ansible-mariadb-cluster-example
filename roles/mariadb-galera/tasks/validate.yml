@@ -1,0 +1,21 @@
+##  Validate Variables
+##  ==================
+
+- name: Validate cluster IPs
+  assert:
+    that: cluster_hosts|length > 0
+    fail_msg: cluster_hosts must contain at least 1 element
+    success_msg: "cluster_hosts size: {{ cluster_hosts|length }}"
+
+- name: Validate cluster IPs
+  assert:
+    that: "'{{ item.public_ip }}'|ipaddr"
+    fail_msg: "{{ item.public_ip }} is not a valid IP"
+    success_msg: "{{ item.public_ip }}: OK"
+  with_items: "{{ cluster_hosts }}"
+
+- debug:
+    msg: >
+      Cluster first node: {{ cluster_hosts[0].public_ip }}
+      Cluster nodes count: {{ cluster_hosts|length }}
+

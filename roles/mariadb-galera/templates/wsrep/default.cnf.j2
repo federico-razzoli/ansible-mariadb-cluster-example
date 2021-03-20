@@ -1,0 +1,18 @@
+[mysqld]
+
+# This file is meant for all nodes except for the first.
+# By default, each node should be given all other nodes addresses.
+wsrep_cluster_address = gcomm://{{ private_ips|join(',') }}
+
+wsrep_node_name = {{ cluster_hosts[node_index].node_name }}
+
+
+# SST
+{% if cluster_hosts[0].public_ip == hostvars[inventory_hostname]['ansible_default_ipv4']['address'] and cluster_hosts|length > 1 %}
+wsrep_sst_donor = {{ cluster_hosts[1].node_name }}
+{% else %}
+wsrep_sst_donor = {{ cluster_hosts[0].node_name }}
+{% endif %}
+wsrep_sst_method = xtrabackup-v2
+wsrep_sst_auth = '{{ cluster_sst_user }}:{{ cluster_sst_password }}'
+
