@@ -3,14 +3,14 @@
 pmm-1    ansible_host=pmm-host
 
 
-[mariadb_prod_1]
+[mariadb_1]
 
 mariadb-main-1-1    ansible_host=100.200.110.10
 mariadb-main-1-2    ansible_host=100.200.110.20
 mariadb-main-1-3    ansible_host=100.200.110.30
 
 
-[mariadb_prod_1:vars]
+[mariadb_1:vars]
 
 pmm_server_host=pmm_host
 pmm_server_port=80
