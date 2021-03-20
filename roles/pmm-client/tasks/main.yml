@@ -1,0 +1,111 @@
+---
+# tasks file for pmm-client
+
+# Install pmm-client.
+
+- name: Install dependencies
+  tags: [ pmm, pmm-client ]
+  become: yes
+  package:
+    name: xz-utils
+    state: present
+
+- name: Add Percona apt repository
+  tags: [ pmm, pmm-client ]
+  become: yes
+  apt:
+    deb: "https://repo.percona.com/apt/percona-release_{{ pmm_client_version }}.{{ ansible_distribution_release | lower }}_all.deb"
+    update_cache: true
+    state: present
+
+- name: Install pmm-client
+  tags: [ pmm, pmm-client, pmm-upgrade, pmm-client-upgrade ]
+  become: yes
+  package:
+    name: pmm-client
+    state: present
+
+# We need to remove any existing service in order to configure the client.
+# Later we can add them again without ignoring errors.
+
+- name: Disable existing services, if any
+  tags: [ pmm, pmm-client, pmm-upgrade, pmm-client-upgrade, pmm-services-up ]
+  become: yes
+  ignore_errors: yes
+  shell: >
+    pmm-admin remove --all
+
+# Because of a pmm-admin bug, we have to:
+# - configure
+# - repair the installation
+# - configure again
+
+- name: Configure PMM client
+  tags: [ pmm, pmm-client, pmm-upgrade ]
+  become: yes
+  ignore_errors: yes
+  command: "pmm-admin config
+      --server {{ pmm_server_host | quote }}:{{ pmm_server_port | quote }}
+      --server-user={{ pmm_server_user }}
+      --server-password={{ pmm_server_password }}
+      --client-address {{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}"
+
+- name: Repair PMM client
+  tags: [ pmm, pmm-client, pmm-upgrade ]
+  become: yes
+  command: >
+    pmm-admin repair
+
+# This may be necessary if an existing installation was broken
+# before running pmm-admin config
+- name: Disable existing services again, if any
+  tags: [ pmm, pmm-client, pmm-upgrade, pmm-client-upgrade, pmm-services-up ]
+  become: yes
+  ignore_errors: yes
+  shell: >
+    pmm-admin remove --all
+
+- name: Configure PMM client again
+  tags: [ pmm, pmm-client, pmm-upgrade ]
+  become: yes
+  command: "pmm-admin config
+      --server {{ pmm_server_host | quote }}:{{ pmm_server_port | quote }}
+      --server-user={{ pmm_server_user }}
+      --server-password={{ pmm_server_password }}
+      --client-address {{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}"
+
+- name: Enable Linux service
+  tags: [ pmm, pmm-client, pmm-upgrade, pmm-client-upgrade, pmm-services-up ]
+  become: yes
+  shell: >
+    pmm-admin add linux:metrics
+  when: '"linux" in pmm_services'
+
+- name: Enable MySQL service
+  tags: [ pmm, pmm-client, pmm-upgrade, pmm-client-upgrade, pmm-services-up ]
+  become: yes
+  shell: >
+    pmm-admin add mysql \
+      --host localhost \
+      --port 3306 \
+      --user 'pmm-client' \
+      --password 'pmMm0Secret.,zxL'
+  when: '"mysql" in pmm_services'
+
+# Print debug information
+
+- name: List services
+  tags: debug
+  become: yes
+  shell: pmm-admin list
+
+- name: Show network status
+  tags: debug
+  become: yes
+  shell: pmm-admin check-network
+
+- name: Show ping
+  tags: debug
+  become: yes
+  shell: pmm-admin ping
+

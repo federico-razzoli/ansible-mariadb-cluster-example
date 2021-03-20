@@ -1,0 +1,98 @@
+---
+
+# Create the following variables:
+#   - /var/mariadb-permissions/groups   an entry for each group
+#   - /var/mariadb-permissions/hosts    an entry for each host
+#
+# When applying this role to a host, these permissions are executed:
+#   - All groups mentioned in permission_group array;
+#   - The file corresponding to its inventory name, if it exists.
+#
+# Each file is an SQL file with the SQL statements to create proper permissions.
+# Therefore, in theory permissions are incremental.
+# Hoever, one can use REVOKE to exclude a group permission from a host.
+#
+
+
+- name: Delete /var/mariadb-permissions
+  tags: [ mariadb-permissions ]
+  file:
+    path: /var/mariadb-permissions
+    state: absent
+
+- name: Create /var/mariadb-permissions
+  tags: [ mariadb-permissions ]
+  file:
+    path: /var/mariadb-permissions
+    state: directory
+
+- name: Create /var/mariadb-permissions/groups
+  tags: [ mariadb-permissions ]
+  file:
+    path: /var/mariadb-permissions/groups
+    state: directory
+
+- name: Create /var/mariadb-permissions/hosts
+  tags: [ mariadb-permissions ]
+  file:
+    path: /var/mariadb-permissions/hosts
+    state: directory
+
+- name: Create /var/mariadb-permissions/scripts
+  tags: [ mariadb-permissions ]
+  file:
+    path: /var/mariadb-permissions/scripts
+    state: directory
+
+- name: Copy scripts
+  tags: [ mariadb-permissions ]
+  copy:
+    src: ./run-privileges.sh
+    dest: /var/mariadb-permissions/scripts
+    owner: root
+    group: root
+    mode: 'preserve'
+
+- name: Add scripts path to profile
+  tags: [ mariadb-permissions ]
+  lineinfile:
+    dest: /etc/profile
+    line: "export PATH=$PATH:/var/mariadb-permissions/scripts"
+
+- name: Run profile
+  tags: [ mariadb-permissions ]
+  shell: >
+    executable=/bin/bash source /etc/profile
+
+- name: Copy group permission files to server
+  tags: [ mariadb-permissions, mariadb-permissions-update ]
+  template:
+    src: "./templates/groups/{{ item }}.sql.j2"
+    dest: "/var/mariadb-permissions/groups/{{ item }}.sql"
+    owner: root
+    group: root
+    mode: 'preserve'
+  with_items:
+    - "{{ permission_group_set }}"
+
+- name: Check if host permission file exists
+  tags: [ mariadb-permissions, mariadb-permissions-update ]
+  local_action: stat path=./templates/hosts/"{{ inventory_hostname }}".sql.j2
+  register: host_permission_file
+
+- name: Copy host permission file to server, if it exists
+  tags: [ mariadb-permissions, mariadb-permissions-update ]
+  template:
+    src: ./templates/hosts/{{ inventory_hostname }}.sql.j2
+    dest: /var/mariadb-permissions/hosts/{{ inventory_hostname }}.sql
+    owner: root
+    group: root
+    mode: 'preserve'
+  register: host_file
+  when: host_permission_file.stat.exists == true
+
+- name: Run run-privileges.sh
+  tags: [ mariadb-permissions, mariadb-permissions-update ]
+  shell: >
+    /var/mariadb-permissions/scripts/run-privileges.sh
+

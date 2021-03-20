@@ -1,0 +1,50 @@
+# privileges for mysql-main
+
+# Xtrabackup user, could be used for SST too
+DROP USER IF EXISTS '{{ mariabackup_user }}'@'localhost';
+CREATE USER '{{ mariabackup_user }}'@'localhost'
+    IDENTIFIED BY '{{ mariabackup_password }}'
+;
+GRANT
+    RELOAD, LOCK TABLES, PROCESS, REPLICATION CLIENT, CREATE TABLESPACE, CREATE, INSERT, SELECT
+    ON *.*
+    TO '{{ mariabackup_user }}'@'localhost'
+;
+
+# SST users for each cluster member
+{% if private_ips is defined %}
+    {% for item in private_ips %}
+DROP USER IF EXISTS '{{ cluster_sst_user }}'@'{{ item }}';
+CREATE USER '{{ cluster_sst_user }}'@'{{ item }}'
+    IDENTIFIED BY '{{ cluster_sst_user }}'
+;
+GRANT RELOAD, PROCESS, LOCK TABLES, REPLICATION CLIENT
+    ON *.*
+    TO '{{ cluster_sst_user }}'@'{{ item }}'
+;
+
+    {% endfor %}
+{% endif %}
+
+# PMM Client
+DROP USER IF EXISTS 'pmm-client'@'localhost';
+CREATE USER 'pmm-client'@'localhost';
+GRANT SELECT, PROCESS, SUPER, REPLICATION CLIENT, RELOAD
+    ON *.*
+    TO 'pmm-client'@'localhost'
+    IDENTIFIED BY 'pmMm0Secret.,zxL'
+    WITH MAX_USER_CONNECTIONS 10
+;
+GRANT SELECT, UPDATE, DELETE, DROP
+    ON performance_schema.*
+    TO 'pmm-client'@'localhost'
+;
+
+# Replication
+DROP USER IF EXISTS 'replica'@'172.41.22.5';
+CREATE USER 'replica'@'172.41.22.5' IDENTIFIED BY '1sE+p:ecLGaJsfLd';
+GRANT REPLICATION SLAVE
+    ON *.*
+    TO 'replica'@'172.41.22.5'
+;
+

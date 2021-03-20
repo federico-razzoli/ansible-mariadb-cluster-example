@@ -1,0 +1,88 @@
+#!/bin/bash
+
+# Rotate files in a directory.
+
+
+HELP_TEXT='rotate-files.sh
+Rotate files, deleting the newest one if they exceed a limit.
+
+Syntax:
+    PATH=/path FILES_TO_KEEP=int ./rotate-files.sh
+
+Variables:
+    FILES_PATH      Where files to rotate and the newest file are.
+    FILES_TO_KEEP   Number of files to keep in the directory.
+                    Before rotation, this number is expected to exceed by 1.
+    DIR=1           Specify this if you are rotating directories
+                    instead of files.
+    DRY_RUN=1       Do nothing, only print actions that should be done.
+    HELP=1          Print this message and exit.
+'
+
+
+# Check that mandatory variables are set, or abort.
+
+
+# make sure commands are found
+PATH=$PATH':/usr/bin'
+
+if [ ! -z "$HELP" ];
+then
+    echo "$HELP_TEXT"
+    exit 0
+fi
+
+# Where the file files and the existing files are stored.
+if [ -z "$FILES_PATH" ];
+then
+    echo 'ABORT: $FILES_PATH is not set'
+    exit 1
+fi
+
+# How many files to keep on disk.
+# Beware that, before rotation, the number can be exceeded by 1.
+if [ -z "$FILES_TO_KEEP" ];
+then
+    echo 'ABORT: $FILES_TO_KEEP is not set'
+    exit 1
+fi
+
+
+if [ -z "$DIR" ];
+then
+    FILE_COUNT=$( ls -1t $FILES_PATH   | grep -v _MANIFEST | grep -v log | wc --lines )
+    OLDEST_FILE=$( ls -1t $FILES_PATH  | grep -v _MANIFEST | grep -v log | tail -1 )
+    if [ $? != '0' ];
+    then
+        FILE_COUNT=0
+    fi
+    echo "$FILE_COUNT directories found in $FILES_PATH"
+else
+    # we add -d to count directories, not their files
+    FILE_COUNT=$( ls -1dt $FILES_PATH/*   | grep -v _MANIFEST | grep -v log | wc --lines )
+    OLDEST_FILE=$( ls -1dt $FILES_PATH/*  | grep -v _MANIFEST | grep -v log | tail -1 )
+    echo "$FILE_COUNT files found in $FILES_PATH"
+fi
+
+echo "The limit is $FILES_TO_KEEP"
+if (( $FILES_TO_KEEP >= $FILE_COUNT ));
+then
+    echo "No need to rotate"
+    exit 0
+fi
+
+echo "Deleting file: $OLDEST_FILE"
+if [ ! -z "$DRY_RUN" ];
+then
+    echo 'Not really: this is a DRY_RUN'
+else
+    if [ -z "$DIR" ];
+    then
+        rm $OLDEST_FILE
+    else
+        rm -Rf $OLDEST_FILE
+    fi
+fi
+
+exit 0
+

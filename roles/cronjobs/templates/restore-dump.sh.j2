@@ -1,0 +1,30 @@
+#!/bin/bash
+
+
+# Restore a dump produced with mydumper of all databases with myloader.
+
+ls -1dt /var/backup/dump/var/backup/dump/*
+dump_to_restore=$( ls -1dt /var/backup/dump/var/backup/dump/* | head -1 )
+echo "Restoring dump: $dump_to_restore"
+
+$( which myloader ) \
+    --directory $dump_to_restore \
+    --overwrite-tables \
+    --enable-binlog \
+    --threads 4 \
+    --queries-per-transaction 1000
+
+# get replication coordinates from metadata file
+echo 'Reading replication coordinates from /tmp'
+metadata_file="$dump_to_restore/metadata"
+replication_log=$( cat $metadata_file | grep 'Log:' | awk '{print $2}' )
+echo "Primary Log: $replication_log"
+replication_pos=$( cat $metadata_file | grep 'Pos:' | awk '{print $2}' )
+echo "Primary Position: $replication_pos"
+
+# write replication coordinates in /tmo
+echo 'Writing replication coordinates into tmp'
+rm -f /tmp/replication_*
+echo $replication_log > /tmp/replication_log
+echo $replication_pos > /tmp/replication_pos
+

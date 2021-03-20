@@ -1,0 +1,22 @@
+#!/bin/bash
+
+
+# Take a dump of all databases with mydumper.
+# Then rotate the dumps.
+
+
+cd /var/backup/dump; $( which mydumper ) \
+    --regex '^(?!(mysql|performance_schema|information_schema|sys))' \
+    --triggers \
+    --routines \
+    --events \
+    --threads 4 \
+    --statement-size 1000000 \
+    --long-query-guard 60 \
+    --compress \
+    --build-empty-files
+
+echo
+echo 'Rotating local dumps'
+DIR=1 FILES_PATH="/var/backup/dump" FILES_TO_KEEP=1 /usr/local/scripts/rotate-files.sh
+

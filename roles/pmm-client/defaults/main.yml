@@ -1,0 +1,6 @@
+---
+
+pmm_client_version: latest
+pmm_server_user: treedom-pmm
+pmm_server_password: treedom-secret
+

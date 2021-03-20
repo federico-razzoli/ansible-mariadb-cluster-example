@@ -1,0 +1,44 @@
+---
+# tasks file for mydumper
+
+
+# Install mydumper and its docs from existing apt repositories.
+# Should we need more recent versions, we'll switch to:
+# https://github.com/Oefenweb/ansible-mydumper
+
+
+- name: Install mydumper
+  tags: [ mydumper ]
+  apt:
+    name: mydumper
+    install_recommends: yes
+    update_cache: true
+    state: present
+
+- name: Install mydumper-doc
+  tags: [ mydumper ]
+  package:
+    name: mydumper-doc
+    install_recommends: yes
+    state: present
+  ignore_errors: yes
+
+- name: Create /var/db-backups
+  tags: [ mydumper ]
+  file:
+    name: /var/db-backups
+    owner: root
+    group: root
+    mode: '755'
+    state: directory
+
+- name: Create /var/db-backups subdirs
+  tags: [ mydumper ]
+  file:
+    name: "/var/db-backups/{{ item }}"
+    owner: root
+    group: root
+    mode: '755'
+    state: directory
+  with_items: "{{ mydumper_subdir_set }}"
+
