@@ -105,13 +105,6 @@
     - get-tarball.sh
     - config-get-tarball.sh
 
-- name: Copy find-password.sh
-  tags: [ mariadb-galera, mariadb-galera-scripts-update ]
-  become: yes
-  template:
-    src="./templates/find-password.sh.j2"
-    dest="{{ script_dir }}/find-password.sh"
-
 # Returns code 100 if the tarball was unpacked.
 # This check can be used later to check if new MariaDB was put in place:
 # get_tarball.rc == 100
@@ -356,13 +349,6 @@
   service:
     name=mysql
     state=restarted
-
-- name: Use generated password
-  tags: [ mariadb-galera ]
-  become: yes
-  shell: >
-    "{{ script_dir }}/find-password.sh"
-  when: datadir_file_count.stdout == '0'
 
 - name: Fail fast if service is not up
   tags: [ mariadb-galera, mariadb-galera-static-config-update ]
