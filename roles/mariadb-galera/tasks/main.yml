@@ -43,22 +43,6 @@
     name: percona-toolkit
     state: present
 
-# Percona Xtrabackup
-
-- name: Install Percona Xtrabackup 2.4
-  tags: [ mariadb-galera, xtrabackup-upgrade ]
-  become: yes
-  package:
-    name: percona-xtrabackup-24
-    state: present
-
-- name: Add mysql group
-  tags: [ mariadb-galera ]
-  become: yes
-  group:
-    name: "{{ mysql_group }}"
-    state: present
-
 
 ##  Other Packages
 ##  ==============
