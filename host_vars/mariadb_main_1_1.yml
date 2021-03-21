@@ -1,0 +1,10 @@
+---
+
+node_index: 0
+mysql_server_id: 1
+
+mydumper_subdir_set:
+  - mydumper
+
+backups_to_s3: yes
+
