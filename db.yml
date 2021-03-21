@@ -6,5 +6,5 @@
 
 - hosts: mariadb_1
   roles:
-    - role: mariadb-complete
+    - role: mariadb-galera-complete
 
