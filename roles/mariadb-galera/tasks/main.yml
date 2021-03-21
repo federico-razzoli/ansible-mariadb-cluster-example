@@ -79,7 +79,7 @@
   become: yes
   user:
     name: "{{ mysql_user }}"
-    comment: Percona Server daemon
+    comment: MariaDB daemon
     group: "{{ mysql_group }}"
     create_home: no
     shell: /sbin/nologin
