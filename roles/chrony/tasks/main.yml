@@ -1,0 +1,16 @@
+---
+
+- name: Install chrony
+  tags: [ chrony ]
+  package:
+    name: chrony
+    state: present
+
+- name: Generate chrony config file
+  tags: [ chrony ]
+  template:
+    src: ./templates/chrony.conf.j2
+    dest: /etc/chrony/
+    owner: root
+    group: root
+    mode: 644
