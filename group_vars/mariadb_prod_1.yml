@@ -12,7 +12,7 @@ private_ips:
     - ...
 
 cluster_sst_user:      tree-sst-main-1
-cluster_sst_password:  Q16$.Odj3_JeLkwFxE
+cluster_sst_password:  ...
 
 mysql_wsrep_on: 1
 
@@ -40,8 +40,8 @@ mysql_logrotate_max_size: 1G
 mysql_logrotate_old_files: 7
 mysql_logrotate_old_dir: /var/mysql/old-logs
 
-xtrabackup_mysql_user: 'xtrabackup'
-xtrabackup_mysql_password: 'iH_xP8DfJ6-G6d3w,j'
+xtrabackup_mysql_user: xtrabackup
+xtrabackup_mysql_password: ...
 
 mydumper_subdir_set: [ ]
 
