@@ -4,5 +4,7 @@ This repository was originally written as an example for the talk "Automate Mari
 
 https://mariadb.org/ha-minifest2021/automate/
 
+PLEASE DO NOT USE IN PRODUCTION!
+
 If you have ideas or hints that you want to share, feel free to submit a feature request. If accepted, you will be properly credited.
 
