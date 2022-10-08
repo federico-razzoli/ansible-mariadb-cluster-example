@@ -13,17 +13,17 @@
 ##  Percona Tools
 ##  =============
 
-- name: Adds percona key
-  tags: [ mariadb-galera ]
-  apt_key:
-    keyserver: keys.gnupg.net
-    id: "{{ item }}"
-    state: present
-  with_items:
-    - E1E2CD202D607DAF
-    - 1C4CBDCDCD2EFD2A
-    - 9334A25F8507EFA5
-    - 9E003FA64CAC6D72
+    #- name: Adds percona key
+    #  tags: [ mariadb-galera ]
+    #  apt_key:
+    #    keyserver: keys.gnupg.net
+    #    id: "{{ item }}"
+    #    state: present
+    #  with_items:
+    #    - E1E2CD202D607DAF
+    #    - 1C4CBDCDCD2EFD2A
+    #    - 9334A25F8507EFA5
+    #    - 9E003FA64CAC6D72
 
 - name: Add Percona apt repository
   tags: [ mariadb-galera ]
@@ -40,7 +40,6 @@
     name: percona-toolkit
     state: present
 
-
 ##  Other Packages
 ##  ==============
 
@@ -53,6 +52,12 @@
 
 ##  Prepare MariaDB installation
 ##  ==========================
+
+- name: Add mysql group
+  tags: [ mariadb-galera ]
+  ansible.builtin.group:
+    name: "{{ mysql_group }}"
+    state: present
 
 - name: Add mysql user
   tags: [ mariadb-galera ]
@@ -293,14 +298,16 @@
 
 - name: Reload service
   tags: [ mariadb-galera, mariadb-galera-service-update ]
-  command: systemctl daemon-reload
+  ansible.builtin.systemd:
+    daemon_reload: yes
   when: mysql_service.changed
 
 - name: Restart mysql
   tags: [ mariadb-galera, mariadb-galera-static-config-update ]
-  service:
-    name=mysql
-    state=restarted
+  ansible.builtin.systemd:
+    name: mysql.service
+    masked: no
+    state: restarted
 
 - name: Fail fast if service is not up
   tags: [ mariadb-galera, mariadb-galera-static-config-update ]
