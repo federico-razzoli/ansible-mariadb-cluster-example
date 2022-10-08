@@ -1,0 +1,56 @@
+---
+
+cluster_name: mysql_prod_1
+cluster_hosts:
+  - { "node_name": "mariadb-main-1-1", "public_ip": "172.32.99.111", "private_ip": "172.32.99.111" }
+  - { "node_name": "mariadb-main-1-2", "public_ip": "172.32.99.112", "private_ip": "172.32.99.112" }
+  - { "node_name": "mariadb-main-1-3", "public_ip": "172.32.99.113", "private_ip": "172.32.99.113" }
+
+private_ips:
+    - 172.32.99.111
+    - 172.32.99.112
+    - 172.32.99.113
+
+cluster_sst_user:      tree-sst-main-1
+cluster_sst_password:  clpwd
+
+mysql_wsrep_on: 1
+
+primary_config_group: mysql_prod_1
+
+# paths
+script_dir: /usr/local/scripts
+mysql_conf_dir: /etc/mysql
+mysql_base_dir: /usr/local/mysql
+mysql_data_dir: /var/mysql/data
+mysql_log_dir: /var/mysql/logs
+mysql_tmp_dir: /var/mysql/tmp
+
+permission_group_set:
+  - main
+
+superuser_password: ')W4E,U6r2SzrGqCs.f'
+
+pmm_services:
+  - linux
+  - mysql
+
+mysql_logrotate_min_size: 500M
+mysql_logrotate_max_size: 1G
+mysql_logrotate_old_files: 7
+mysql_logrotate_old_dir: /var/mysql/old-logs
+
+xtrabackup_mysql_user: xtrabackup
+xtrabackup_mysql_password: backup
+
+mariabackup_user: backup
+mariabackup_password: backup
+
+mydumper_subdir_set: [ ]
+
+cronjob_dirs:
+  - { path: '/var/backup/dump',        owner: 'root',  group: 'root',  mode: '755', comment: 'This directory contains complete dumps' }
+
+cronjob_set:
+  - { name: 'DB complete dump' ,     state: 'enabled',   hour: '1',  minute: '0',   body: '/usr/local/scripts/db-dump.sh' }
+
