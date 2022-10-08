@@ -19,8 +19,7 @@ kernel_parameters:
 # Additional packages to install, useful for diagnostics
 # or simplifying manual tasks
 package_list:
-    - linux-tools-common
+  #- linux-tools-common
     - sysstat
     - net-tools
     - numactl
-
