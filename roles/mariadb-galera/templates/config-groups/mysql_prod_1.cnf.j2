@@ -25,7 +25,7 @@ socket      = {{ mysql_run_dir }}/{{ mysql_socket }}
 
 comments
 
-max_allowed_packet = 134217728
+max_allowed_packet = 1M
 
 
 [mysqld]
@@ -54,13 +54,13 @@ internal_tmp_disk_storage_engine  = InnoDB
 tmp_table_size                    = 16777216
 
 # limits
-max_allowed_packet = 134217728
+max_allowed_packet = 1M
 max_connections = 300
 
 
 # caches
-table_definition_cache      = 10000
-table_open_cache            = 10000
+table_definition_cache      = 1000
+table_open_cache            = 4
 table_open_cache_instances  = 16
 thread_cache_size           = 512
 
@@ -118,7 +118,7 @@ slow_query_log_use_global_control = all
 log_bin = 1
 
 # rotation
-max_binlog_size   = 1073741824
+max_binlog_size   = 100000
 expire_logs_days  = 7
 
 # format
@@ -151,7 +151,7 @@ key_buffer_size         = 4194304
 ##  ======
 
 # buffer pool
-innodb_buffer_pool_size        = 50G
+innodb_buffer_pool_size        = 16M
 innodb_change_buffer_max_size  = 25
 innodb_max_dirty_pages_pct     = 90
 
@@ -161,12 +161,12 @@ innodb_buffer_pool_dump_at_shutdown  = 1
 
 # log buffer
 innodb_log_files_in_group  = 2
-innodb_log_file_size       = 2G
+innodb_log_file_size       = 100M
 innodb_log_buffer_size     = 16M
 
 # undo log
 innodb_undo_logs          = 128
-innodb_max_undo_log_size  = 1073741824
+innodb_max_undo_log_size  = 100000
 innodb_undo_tablespaces   = 0
 
 # flushing
