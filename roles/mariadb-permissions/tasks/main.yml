@@ -47,7 +47,7 @@
 - name: Copy scripts
   tags: [ mariadb-permissions ]
   copy:
-    src: ./run-privileges.sh
+    src: ./files/run-privileges.sh
     dest: /var/mariadb-permissions/scripts
     owner: root
     group: root
