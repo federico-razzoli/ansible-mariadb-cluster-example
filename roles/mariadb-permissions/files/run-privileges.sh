@@ -50,7 +50,7 @@ else
 	echo 'No host file'
 fi
 
-mysql --show-warnings < $RUN_FILE >> $OUT_FILE
+/usr/local/mysql/bin/mysql --show-warnings < $RUN_FILE >> $OUT_FILE
 r=$?
 
 echo "mysql exit code: $r"
