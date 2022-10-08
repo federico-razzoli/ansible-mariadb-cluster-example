@@ -2,14 +2,15 @@
 # vars file for pmm
 
 # Change this value to upgrade/downgrade
-pmm_server_version: 1.17.4
+pmm_server_version: 2
 # HTTP port to connect Grafana
 pmm_server_http_port: 80
+pmm_server_https_port: 443
 # Metrics (and thus graphs) are retained for this amount of time
 metrics_retention: 15d
 # Queries are retained for this amount of time
 queries_retention: 10d
-pmm_server_user: treedom-pmm
+pmm_server_user: admin
 pmm_server_password: treedom-secret
 
 
