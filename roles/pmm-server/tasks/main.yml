@@ -11,6 +11,8 @@
       - python3-pip
     state: present
 
+      # TODO: https://docs.docker.com/engine/install/debian/
+
 - name: Install pip docker
   tags: [ pmm, pmm-server ]
   pip:
@@ -68,5 +70,6 @@
     "
     ports:
     - "{{ pmm_server_http_port }}:80"
+    - "{{ pmm_server_https_port }}:443"
     restart_policy: always
 
