@@ -14,7 +14,8 @@
   tags: [ pmm, pmm-client ]
   become: yes
   apt:
-    deb: "https://repo.percona.com/apt/percona-release_{{ pmm_client_version }}.{{ ansible_distribution_release | lower }}_all.deb"
+    #deb: "https://repo.percona.com/apt/percona-release_{{ pmm_client_version }}.{{ ansible_distribution_release | lower }}_all.deb"
+    deb: "https://repo.percona.com/apt/percona-release_latest.generic_all.deb"
     update_cache: true
     state: present
 
@@ -22,7 +23,7 @@
   tags: [ pmm, pmm-client, pmm-upgrade, pmm-client-upgrade ]
   become: yes
   package:
-    name: pmm-client
+    name: pmm2-client
     state: present
 
 # We need to remove any existing service in order to configure the client.
@@ -43,18 +44,14 @@
 - name: Configure PMM client
   tags: [ pmm, pmm-client, pmm-upgrade ]
   become: yes
+  command: pmm-admin config --server-url="https://admin:{{ pmm_server_password }}@{{ pmm_server_host | quote }}:443" --server-insecure-tls
   ignore_errors: yes
-  command: "pmm-admin config
-      --server {{ pmm_server_host | quote }}:{{ pmm_server_port | quote }}
-      --server-user={{ pmm_server_user }}
-      --server-password={{ pmm_server_password }}
-      --client-address {{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}"
 
-- name: Repair PMM client
-  tags: [ pmm, pmm-client, pmm-upgrade ]
-  become: yes
-  command: >
-    pmm-admin repair
+      #- name: Repair PMM client
+      #  tags: [ pmm, pmm-client, pmm-upgrade ]
+      #  become: yes
+      #  command: >
+      #    pmm-admin repair
 
 # This may be necessary if an existing installation was broken
 # before running pmm-admin config
@@ -68,11 +65,7 @@
 - name: Configure PMM client again
   tags: [ pmm, pmm-client, pmm-upgrade ]
   become: yes
-  command: "pmm-admin config
-      --server {{ pmm_server_host | quote }}:{{ pmm_server_port | quote }}
-      --server-user={{ pmm_server_user }}
-      --server-password={{ pmm_server_password }}
-      --client-address {{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}"
+  command: pmm-admin config --server-url="https://admin:{{ pmm_server_password }}@{{ pmm_server_host | quote }}:443" --server-insecure-tls
 
 - name: Enable Linux service
   tags: [ pmm, pmm-client, pmm-upgrade, pmm-client-upgrade, pmm-services-up ]
